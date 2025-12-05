@@ -59,7 +59,7 @@ export const Route = createFileRoute('/api/tanchat')({
         const abortController = new AbortController()
 
         const body = await request.json()
-        const { messages, data, context } = body
+        const { messages, data } = body
 
         // Extract provider, model, and conversationId from data
         const provider: Provider = data?.provider || 'openai'
@@ -97,6 +97,13 @@ export const Route = createFileRoute('/api/tanchat')({
             `[API Route] Using provider: ${provider}, model: ${selectedModel}`,
           )
 
+          // Server-side context (e.g., database connections, user session)
+          // This is separate from client context and only used for server tools
+          const serverContext = {
+            // Add server-side context here if needed
+            // e.g., db, userId from session, etc.
+          }
+
           const stream = chat({
             adapter: adapter as any,
             model: selectedModel as any,
@@ -112,7 +119,7 @@ export const Route = createFileRoute('/api/tanchat')({
             messages,
             abortController,
             conversationId,
-            ...(context !== undefined && { context }),
+            context: serverContext,
           })
           return toStreamResponse(stream, { abortController })
         } catch (error: any) {

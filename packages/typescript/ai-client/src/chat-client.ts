@@ -310,13 +310,10 @@ export class ChatClient<
       // Call onResponse callback
       await this.callbacksRef.current.onResponse()
 
-      // Include conversationId and context in the body for server-side event correlation
+      // Include conversationId in the body for server-side event correlation
       const bodyWithConversationId = {
         ...this.body,
         conversationId: this.uniqueId,
-        ...(this.options.context !== undefined && {
-          context: this.options.context,
-        }),
       }
 
       // Connect and stream
