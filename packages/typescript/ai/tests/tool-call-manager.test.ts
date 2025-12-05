@@ -123,7 +123,7 @@ describe('ToolCallManager', () => {
     // Tool execute should have been called
     expect(mockWeatherTool.execute).toHaveBeenCalledWith(
       { location: 'Paris' },
-      undefined,
+      { context: undefined },
     )
   })
 

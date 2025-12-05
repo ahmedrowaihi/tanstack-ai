@@ -16,6 +16,7 @@ import type {
   StreamChunk,
   Tool,
   ToolCall,
+  ToolOptions,
 } from '../types'
 
 interface ChatEngineConfig<
@@ -45,7 +46,7 @@ class ChatEngine<
   private readonly streamId: string
   private readonly effectiveRequest?: Request | RequestInit
   private readonly effectiveSignal?: AbortSignal
-  private readonly context?: TParams['context']
+  private readonly options: Partial<ToolOptions<TParams['context']>>
 
   private messages: Array<ModelMessage>
   private iterationCount = 0
@@ -76,7 +77,7 @@ class ChatEngine<
       ? { signal: config.params.abortController.signal }
       : undefined
     this.effectiveSignal = config.params.abortController?.signal
-    this.context = config.params.context
+    this.options = { context: config.params.context }
   }
 
   async *chat(): AsyncGenerator<StreamChunk> {
@@ -383,6 +384,7 @@ class ChatEngine<
       this.tools,
       approvals,
       clientToolResults,
+      this.options,
     )
 
     if (
@@ -451,7 +453,7 @@ class ChatEngine<
       this.tools,
       approvals,
       clientToolResults,
-      this.context,
+      this.options,
     )
 
     if (
