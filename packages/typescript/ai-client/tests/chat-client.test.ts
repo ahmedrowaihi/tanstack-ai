@@ -667,7 +667,7 @@ describe('ChatClient', () => {
       expect(mockStorage.setItem).toHaveBeenCalledWith('pref_123_theme', 'dark')
     })
 
-    it('should send context to server in request body', async () => {
+    it('should not send context to server (context is only for client tools)', async () => {
       const testContext = {
         userId: '123',
         sessionId: 'session-456',
@@ -688,9 +688,9 @@ describe('ChatClient', () => {
 
       await client.sendMessage('Hello')
 
-      // Context should be in the request body
+      // Context should NOT be in the request body (only used for client tools)
       expect(capturedBody).toBeDefined()
-      expect(capturedBody.context).toEqual(testContext)
+      expect(capturedBody.context).toBeUndefined()
     })
 
     it('should work without context (context is optional)', async () => {

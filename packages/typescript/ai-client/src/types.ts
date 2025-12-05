@@ -211,20 +211,19 @@ export interface ChatClientOptions<
   }
 
   /**
-   * Context object that is automatically passed to all tool execute functions.
+   * Context object that is automatically passed to client-side tool execute functions.
    *
-   * This allows tools to access shared context (like user ID, local storage,
+   * This allows client tools to access shared context (like user ID, local storage,
    * browser APIs, etc.) without needing to capture them via closures.
-   * Works for both client and server tools.
    *
-   * The context is also sent to the server in the request body, so server tools
-   * can access the same context.
+   * Note: This context is only used for client-side tools. Server tools should receive
+   * their own context from the server-side chat() function.
    *
    * @example
    * const client = new ChatClient({
    *   connection: fetchServerSentEvents('/api/chat'),
    *   context: { userId: '123', localStorage },
-   *   tools: [getUserData],
+   *   tools: [clientTool],
    * });
    */
   context?: TContext
