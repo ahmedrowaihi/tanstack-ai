@@ -20,7 +20,7 @@ import type {
 
 interface ChatEngineConfig<
   TAdapter extends AIAdapter<any, any, any, any>,
-  TParams extends ChatOptions<any, any> = ChatOptions<any>,
+  TParams extends ChatOptions<any, any, any, any, any> = ChatOptions<any>,
 > {
   adapter: TAdapter
   systemPrompts?: Array<string>
@@ -32,7 +32,7 @@ type CyclePhase = 'processChat' | 'executeToolCalls'
 
 class ChatEngine<
   TAdapter extends AIAdapter<any, any, any, any>,
-  TParams extends ChatOptions<any, any> = ChatOptions<any>,
+  TParams extends ChatOptions<any, any, any, any, any> = ChatOptions<any>,
 > {
   private readonly adapter: TAdapter
   private readonly params: TParams
@@ -45,6 +45,7 @@ class ChatEngine<
   private readonly streamId: string
   private readonly effectiveRequest?: Request | RequestInit
   private readonly effectiveSignal?: AbortSignal
+  private readonly context?: TParams['context']
 
   private messages: Array<ModelMessage>
   private iterationCount = 0
@@ -75,6 +76,7 @@ class ChatEngine<
       ? { signal: config.params.abortController.signal }
       : undefined
     this.effectiveSignal = config.params.abortController?.signal
+    this.context = config.params.context
   }
 
   async *chat(): AsyncGenerator<StreamChunk> {
@@ -449,6 +451,7 @@ class ChatEngine<
       this.tools,
       approvals,
       clientToolResults,
+      this.context,
     )
 
     if (

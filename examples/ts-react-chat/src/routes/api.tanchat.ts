@@ -59,7 +59,7 @@ export const Route = createFileRoute('/api/tanchat')({
         const abortController = new AbortController()
 
         const body = await request.json()
-        const { messages, data } = body
+        const { messages, data, context } = body
 
         // Extract provider, model, and conversationId from data
         const provider: Provider = data?.provider || 'openai'
@@ -112,6 +112,7 @@ export const Route = createFileRoute('/api/tanchat')({
             messages,
             abortController,
             conversationId,
+            ...(context !== undefined && { context }),
           })
           return toStreamResponse(stream, { abortController })
         } catch (error: any) {
