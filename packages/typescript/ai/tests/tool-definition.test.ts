@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { toolDefinition } from '../src/tools/tool-definition'
 
@@ -254,5 +254,61 @@ describe('toolDefinition', () => {
     expect(tool.description).toBe('Can be used directly')
     expect(tool.__toolSide).toBe('definition')
     expect(tool.inputSchema).toBeDefined()
+  })
+
+  describe('context support', () => {
+    it('should pass context to tool execute functions', async () => {
+      interface TestContext {
+        userId: string
+        db: {
+          users: {
+            find: (id: string) => Promise<{ name: string; email: string }>
+          }
+        }
+      }
+
+      const tool = toolDefinition({
+        name: 'getUser',
+        description: 'Get user by ID',
+        inputSchema: z.object({
+          userId: z.string(),
+        }),
+        outputSchema: z.object({
+          name: z.string(),
+          email: z.string(),
+        }),
+      })
+
+      const mockContext: TestContext = {
+        userId: '123',
+        db: {
+          users: {
+            find: vi.fn(async (_id: string) => ({
+              name: 'John Doe',
+              email: 'john@example.com',
+            })),
+          },
+        },
+      }
+
+      const executeFn = vi.fn(async (args: any, context?: TestContext) => {
+        if (!context) throw new Error('Context required')
+        const user = await context.db.users.find(args.userId)
+        return user
+      })
+
+      const serverTool = tool.server<TestContext>(executeFn)
+
+      if (serverTool.execute) {
+        const result = await serverTool.execute({ userId: '123' }, mockContext)
+
+        expect(result).toEqual({
+          name: 'John Doe',
+          email: 'john@example.com',
+        })
+        expect(executeFn).toHaveBeenCalledWith({ userId: '123' }, mockContext)
+        expect(mockContext.db.users.find).toHaveBeenCalledWith('123')
+      }
+    })
   })
 })
