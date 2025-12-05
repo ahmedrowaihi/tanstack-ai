@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { Tool } from '../types'
+import type { Tool, ToolOptions } from '../types'
 
 /**
  * Marker type for server-side tools
@@ -33,7 +33,7 @@ export interface ClientTool<
   metadata?: Record<string, any>
   execute?: (
     args: z.infer<TInput>,
-    context?: TContext,
+    options: ToolOptions<TContext>,
   ) => Promise<z.infer<TOutput>> | z.infer<TOutput>
 }
 
@@ -108,7 +108,7 @@ export interface ToolDefinition<
   server: <TContext = unknown>(
     execute: (
       args: z.infer<TInput>,
-      context?: TContext,
+      options: ToolOptions<TContext>,
     ) => Promise<z.infer<TOutput>> | z.infer<TOutput>,
   ) => ServerTool<TInput, TOutput, TName, TContext>
 
@@ -118,7 +118,7 @@ export interface ToolDefinition<
   client: <TContext = unknown>(
     execute?: (
       args: z.infer<TInput>,
-      context?: TContext,
+      options: ToolOptions<TContext>,
     ) => Promise<z.infer<TOutput>> | z.infer<TOutput>,
   ) => ClientTool<TInput, TOutput, TName, TContext>
 }
@@ -187,7 +187,7 @@ export function toolDefinition<
     server<TContext = unknown>(
       execute: (
         args: z.infer<TInput>,
-        context?: TContext,
+        options: ToolOptions<TContext>,
       ) => Promise<z.infer<TOutput>> | z.infer<TOutput>,
     ): ServerTool<TInput, TOutput, TName, TContext> {
       return {
@@ -201,7 +201,7 @@ export function toolDefinition<
     client<TContext = unknown>(
       execute?: (
         args: z.infer<TInput>,
-        context?: TContext,
+        options: ToolOptions<TContext>,
       ) => Promise<z.infer<TOutput>> | z.infer<TOutput>,
     ): ClientTool<TInput, TOutput, TName, TContext> {
       return {

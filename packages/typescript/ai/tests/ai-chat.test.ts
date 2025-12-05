@@ -5,7 +5,13 @@ import { chat } from '../src/core/chat'
 import { BaseAdapter } from '../src/base-adapter'
 import { aiEventClient } from '../src/event-client.js'
 import { maxIterations } from '../src/utilities/agent-loop-strategies'
-import type { ChatOptions, ModelMessage, StreamChunk, Tool } from '../src/types'
+import type {
+  ChatOptions,
+  ModelMessage,
+  StreamChunk,
+  Tool,
+  ToolOptions,
+} from '../src/types'
 
 // Mock event client to track events
 const eventListeners = new Map<string, Set<(...args: Array<any>) => void>>()
@@ -454,7 +460,7 @@ describe('chat() - Comprehensive Logic Path Coverage', () => {
 
       expect(tool.execute).toHaveBeenCalledWith(
         { location: 'Paris' },
-        undefined,
+        { context: undefined },
       )
       expect(adapter.chatStreamCallCount).toBeGreaterThanOrEqual(2)
 
@@ -562,7 +568,10 @@ describe('chat() - Comprehensive Logic Path Coverage', () => {
       )
 
       // Tool should be executed with complete arguments
-      expect(tool.execute).toHaveBeenCalledWith({ a: 10, b: 20 }, undefined)
+      expect(tool.execute).toHaveBeenCalledWith(
+        { a: 10, b: 20 },
+        { context: undefined },
+      )
       const toolResultChunks = chunks.filter((c) => c.type === 'tool_result')
       expect(toolResultChunks.length).toBeGreaterThan(0)
     })
@@ -1494,7 +1503,7 @@ describe('chat() - Comprehensive Logic Path Coverage', () => {
       expect(chunks[0]?.type).toBe('tool_result')
       expect(toolExecute).toHaveBeenCalledWith(
         { path: '/tmp/test.txt' },
-        undefined,
+        { context: undefined },
       )
       expect(adapter.chatStreamCallCount).toBe(1)
     })
@@ -2609,7 +2618,7 @@ describe('chat() - Comprehensive Logic Path Coverage', () => {
       // Tool should have been executed because approval was provided
       expect(tool.execute).toHaveBeenCalledWith(
         { path: '/tmp/test.txt' },
-        undefined,
+        { context: undefined },
       )
     })
 
@@ -3025,19 +3034,21 @@ describe('chat() - Comprehensive Logic Path Coverage', () => {
         inputSchema: z.object({
           userId: z.string(),
         }),
-        execute: vi.fn(async (args: any, context?: unknown) => {
-          const testContext = context as TestContext | undefined
-          if (testContext) {
+        execute: vi.fn(
+          async <TContext = unknown>(
+            args: any,
+            options: ToolOptions<TContext>,
+          ) => {
+            const testContext = options.context as TestContext
             const user = await testContext.db.users.find(args.userId)
             return JSON.stringify({
               name: user.name,
               email: user.email,
               fromContext: testContext.userId,
             })
-          }
-          return JSON.stringify({ name: 'Unknown' })
-        }),
-      }
+          },
+        ),
+      } satisfies Tool
 
       const mockDb = {
         users: {
@@ -3137,7 +3148,7 @@ describe('chat() - Comprehensive Logic Path Coverage', () => {
       // Tool should have been called with context
       expect(contextTool.execute).toHaveBeenCalledWith(
         { userId: '456' },
-        testContext,
+        { context: testContext },
       )
 
       // Database should have been called
@@ -3233,7 +3244,7 @@ describe('chat() - Comprehensive Logic Path Coverage', () => {
       // Tool should have been called without context
       expect(noContextTool.execute).toHaveBeenCalledWith(
         { value: 'test' },
-        undefined,
+        { context: undefined },
       )
     })
   })

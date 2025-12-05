@@ -3,6 +3,7 @@ import type {
   ModelMessage,
   Tool,
   ToolCall,
+  ToolOptions,
   ToolResultStreamChunk,
 } from '../types'
 
@@ -32,7 +33,7 @@ import type {
  *
  * // After stream completes, execute tools
  * if (manager.hasToolCalls()) {
- *   const toolResults = yield* manager.executeTools(doneChunk);
+ *   const toolResults = yield* manager.executeTools(doneChunk, { context });
  *   messages = [...messages, ...toolResults];
  *   manager.clear();
  * }
@@ -110,7 +111,7 @@ export class ToolCallManager {
    */
   async *executeTools(
     doneChunk: DoneStreamChunk,
-    context?: unknown,
+    options: Partial<ToolOptions<unknown>> = {},
   ): AsyncGenerator<ToolResultStreamChunk, Array<ModelMessage>, void> {
     const toolCallsArray = this.getToolCalls()
     const toolResults: Array<ModelMessage> = []
@@ -142,8 +143,10 @@ export class ToolCallManager {
             }
           }
 
-          // Execute the tool with context if available
-          let result = await tool.execute(args, context)
+          // Execute the tool with options
+          let result = await tool.execute(args, {
+            context: options.context as any,
+          })
 
           // Validate output against outputSchema if provided
           if (tool.outputSchema && result !== undefined && result !== null) {
@@ -239,14 +242,14 @@ interface ExecuteToolCallsResult {
  * @param tools - Available tools with their configurations
  * @param approvals - Map of approval decisions (approval.id -> approved boolean)
  * @param clientResults - Map of client-side execution results (toolCallId -> result)
- * @param context - Optional context object to pass to tool execute functions
+ * @param options - Options object containing context to pass to tool execute functions
  */
 export async function executeToolCalls(
   toolCalls: Array<ToolCall>,
   tools: ReadonlyArray<Tool>,
   approvals: Map<string, boolean> = new Map(),
   clientResults: Map<string, any> = new Map(),
-  context?: unknown,
+  options: Partial<ToolOptions<unknown>> = {},
 ): Promise<ExecuteToolCallsResult> {
   const results: Array<ToolResult> = []
   const needsApproval: Array<ApprovalRequest> = []
@@ -378,7 +381,9 @@ export async function executeToolCalls(
           // Execute after approval
           const startTime = Date.now()
           try {
-            let result = await tool.execute(input, context)
+            let result = await tool.execute(input, {
+              context: options.context as any,
+            })
             const duration = Date.now() - startTime
 
             // Validate output against outputSchema if provided
@@ -436,7 +441,9 @@ export async function executeToolCalls(
     // CASE 3: Normal server tool - execute immediately
     const startTime = Date.now()
     try {
-      let result = await tool.execute(input, context)
+      let result = await tool.execute(input, {
+        context: options.context as any,
+      })
       const duration = Date.now() - startTime
 
       // Validate output against outputSchema if provided

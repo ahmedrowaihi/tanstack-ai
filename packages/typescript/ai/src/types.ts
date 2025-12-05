@@ -11,6 +11,14 @@ export interface ToolCall {
   }
 }
 
+/**
+ * Options object passed to tool execute functions
+ * @template TContext - The type of context object
+ */
+export interface ToolOptions<TContext = unknown> {
+  context: TContext
+}
+
 // ============================================================================
 // Multimodal Content Types
 // ============================================================================
@@ -331,7 +339,7 @@ export interface Tool<
    * Can return any value - will be automatically stringified if needed.
    *
    * @param args - The arguments parsed from the model's tool call (validated against inputSchema)
-   * @param context - Optional context object passed from chat() options (if provided)
+   * @param options - Optional options object passed from chat() options (if provided)
    * @returns Result to send back to the model (validated against outputSchema if provided)
    *
    * @example
@@ -342,14 +350,14 @@ export interface Tool<
    * }
    *
    * // With context:
-   * execute: async (args, context) => {
-   *   const user = await context.db.users.find({ id: context.userId });
+   * execute: async (args, options) => {
+   *   const user = await options.context.db.users.find({ id: options.context.userId });
    *   return user;
    * }
    */
   execute?: <TContext = unknown>(
     args: any,
-    context?: TContext,
+    options: ToolOptions<TContext>,
   ) => Promise<any> | any
 
   /** If true, tool execution requires user approval before running. Works with both server and client tools. */
@@ -536,9 +544,9 @@ export interface ChatOptions<
    * });
    *
    * // In tool definition:
-   * const getUserData = getUserDataDef.server(async (args, context) => {
-   *   // context.userId and context.db are available
-   *   return await context.db.users.find({ userId: context.userId });
+   * const getUserData = getUserDataDef.server(async (args, options) => {
+   *   // options.context.userId and options.context.db are available
+   *   return await options.context.db.users.find({ userId: options.context.userId });
    * });
    */
   context?: TContext

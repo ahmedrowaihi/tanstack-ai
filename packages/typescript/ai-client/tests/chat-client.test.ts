@@ -8,6 +8,7 @@ import {
   createThinkingChunks,
   createToolCallChunks,
 } from './test-utils'
+import type { ToolOptions } from '@tanstack/ai'
 import type { UIMessage } from '../src/types'
 
 describe('ChatClient', () => {
@@ -608,17 +609,19 @@ describe('ChatClient', () => {
         localStorage: mockStorage,
       }
 
-      const executeFn = vi.fn(async (_args: any, context?: unknown) => {
-        const ctx = context as TestContext | undefined
-        if (ctx) {
+      const executeFn = vi.fn(
+        async <TContext = unknown>(
+          _args: any,
+          options: ToolOptions<TContext>,
+        ) => {
+          const ctx = options.context as TestContext
           ctx.localStorage.setItem(
             `pref_${ctx.userId}_${_args.key}`,
             _args.value,
           )
           return { success: true }
-        }
-        return { success: false }
-      })
+        },
+      )
 
       const toolDef = toolDefinition({
         name: 'savePreference',
@@ -658,7 +661,7 @@ describe('ChatClient', () => {
       expect(executeFn).toHaveBeenCalled()
       const lastCall = executeFn.mock.calls[0]
       expect(lastCall?.[0]).toEqual({ key: 'theme', value: 'dark' })
-      expect(lastCall?.[1]).toEqual(testContext)
+      expect(lastCall?.[1]).toEqual({ context: testContext })
 
       // localStorage should have been called
       expect(mockStorage.setItem).toHaveBeenCalledWith('pref_123_theme', 'dark')
@@ -721,7 +724,10 @@ describe('ChatClient', () => {
       await client.sendMessage('Test')
 
       // Tool should have been called without context
-      expect(executeFn).toHaveBeenCalledWith({ value: 'test' }, undefined)
+      expect(executeFn).toHaveBeenCalledWith(
+        { value: 'test' },
+        { context: undefined },
+      )
     })
   })
 })
