@@ -331,15 +331,26 @@ export interface Tool<
    * Can return any value - will be automatically stringified if needed.
    *
    * @param args - The arguments parsed from the model's tool call (validated against inputSchema)
+   * @param context - Optional context object passed from chat() options (if provided)
    * @returns Result to send back to the model (validated against outputSchema if provided)
    *
    * @example
+   * // Without context:
    * execute: async (args) => {
    *   const weather = await fetchWeather(args.location);
-   *   return weather; // Can return object or string
+   *   return weather;
+   * }
+   *
+   * // With context:
+   * execute: async (args, context) => {
+   *   const user = await context.db.users.find({ id: context.userId });
+   *   return user;
    * }
    */
-  execute?: (args: any) => Promise<any> | any
+  execute?: <TContext = unknown>(
+    args: any,
+    context?: TContext,
+  ) => Promise<any> | any
 
   /** If true, tool execution requires user approval before running. Works with both server and client tools. */
   needsApproval?: boolean
@@ -478,6 +489,7 @@ export interface ChatOptions<
   TProviderOptionsSuperset extends Record<string, any> = Record<string, any>,
   TOutput extends ResponseFormat<any> | undefined = undefined,
   TProviderOptionsForModel = TProviderOptionsSuperset,
+  TContext = unknown,
 > {
   model: TModel
   messages: Array<ModelMessage>
@@ -507,6 +519,29 @@ export interface ChatOptions<
    * @see https://developer.mozilla.org/en-US/docs/Web/API/AbortController
    */
   abortController?: AbortController
+  /**
+   * Context object that is automatically passed to all tool execute functions.
+   *
+   * This allows tools to access shared context (like user ID, database connections,
+   * request metadata, etc.) without needing to capture them via closures.
+   * Works for both server and client tools.
+   *
+   * @example
+   * const stream = chat({
+   *   adapter: openai(),
+   *   model: 'gpt-4o',
+   *   messages,
+   *   context: { userId: '123', db },
+   *   tools: [getUserData],
+   * });
+   *
+   * // In tool definition:
+   * const getUserData = getUserDataDef.server(async (args, context) => {
+   *   // context.userId and context.db are available
+   *   return await context.db.users.find({ userId: context.userId });
+   * });
+   */
+  context?: TContext
 }
 
 export type StreamChunkType =

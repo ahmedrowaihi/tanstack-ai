@@ -14,7 +14,10 @@ import type { AnyClientTool, ModelMessage, StreamChunk } from '@tanstack/ai'
 import type { ConnectionAdapter } from './connection-adapters'
 import type { ChatClientEventEmitter } from './events'
 
-export class ChatClient {
+export class ChatClient<
+  TTools extends ReadonlyArray<AnyClientTool> = any,
+  TContext = unknown,
+> {
   private processor: StreamProcessor
   private connection: ConnectionAdapter
   private uniqueId: string
@@ -26,6 +29,7 @@ export class ChatClient {
   private clientToolsRef: { current: Map<string, AnyClientTool> }
   private currentStreamId: string | null = null
   private currentMessageId: string | null = null
+  private context?: TContext
 
   private callbacksRef: {
     current: {
@@ -39,9 +43,10 @@ export class ChatClient {
     }
   }
 
-  constructor(options: ChatClientOptions) {
+  constructor(options: ChatClientOptions<TTools, TContext>) {
     this.uniqueId = options.id || this.generateUniqueId('chat')
     this.body = options.body || {}
+    this.context = options.context
     this.connection = options.connection
     this.events = new DefaultChatClientEventEmitter(this.uniqueId)
 
@@ -135,7 +140,7 @@ export class ChatClient {
           const clientTool = this.clientToolsRef.current.get(args.toolName)
           if (clientTool?.execute) {
             try {
-              const output = await clientTool.execute(args.input)
+              const output = await clientTool.execute(args.input, this.context)
               await this.addToolResult({
                 toolCallId: args.toolCallId,
                 tool: args.toolName,
@@ -298,10 +303,11 @@ export class ChatClient {
       // Call onResponse callback
       await this.callbacksRef.current.onResponse()
 
-      // Include conversationId in the body for server-side event correlation
+      // Include conversationId and context in the body for server-side event correlation
       const bodyWithConversationId = {
         ...this.body,
         conversationId: this.uniqueId,
+        ...(this.context !== undefined && { context: this.context }),
       }
 
       // Connect and stream

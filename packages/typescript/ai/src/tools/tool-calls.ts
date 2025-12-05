@@ -110,6 +110,7 @@ export class ToolCallManager {
    */
   async *executeTools(
     doneChunk: DoneStreamChunk,
+    context?: unknown,
   ): AsyncGenerator<ToolResultStreamChunk, Array<ModelMessage>, void> {
     const toolCallsArray = this.getToolCalls()
     const toolResults: Array<ModelMessage> = []
@@ -141,8 +142,8 @@ export class ToolCallManager {
             }
           }
 
-          // Execute the tool
-          let result = await tool.execute(args)
+          // Execute the tool with context if available
+          let result = await tool.execute(args, context)
 
           // Validate output against outputSchema if provided
           if (tool.outputSchema && result !== undefined && result !== null) {
@@ -238,12 +239,14 @@ interface ExecuteToolCallsResult {
  * @param tools - Available tools with their configurations
  * @param approvals - Map of approval decisions (approval.id -> approved boolean)
  * @param clientResults - Map of client-side execution results (toolCallId -> result)
+ * @param context - Optional context object to pass to tool execute functions
  */
 export async function executeToolCalls(
   toolCalls: Array<ToolCall>,
   tools: ReadonlyArray<Tool>,
   approvals: Map<string, boolean> = new Map(),
   clientResults: Map<string, any> = new Map(),
+  context?: unknown,
 ): Promise<ExecuteToolCallsResult> {
   const results: Array<ToolResult> = []
   const needsApproval: Array<ApprovalRequest> = []
@@ -375,7 +378,7 @@ export async function executeToolCalls(
           // Execute after approval
           const startTime = Date.now()
           try {
-            let result = await tool.execute(input)
+            let result = await tool.execute(input, context)
             const duration = Date.now() - startTime
 
             // Validate output against outputSchema if provided
@@ -433,7 +436,7 @@ export async function executeToolCalls(
     // CASE 3: Normal server tool - execute immediately
     const startTime = Date.now()
     try {
-      let result = await tool.execute(input)
+      let result = await tool.execute(input, context)
       const duration = Date.now() - startTime
 
       // Validate output against outputSchema if provided
