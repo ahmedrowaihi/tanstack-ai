@@ -60,9 +60,15 @@ describe('toolDefinition', () => {
     expect(serverTool.execute).toBeDefined()
 
     if (serverTool.execute) {
-      const result = await serverTool.execute({ location: 'Paris' })
+      const result = await serverTool.execute(
+        { location: 'Paris' },
+        { context: undefined as any },
+      )
       expect(result).toEqual({ temperature: 72, conditions: 'sunny' })
-      expect(executeFn).toHaveBeenCalledWith({ location: 'Paris' })
+      expect(executeFn).toHaveBeenCalledWith(
+        { location: 'Paris' },
+        { context: undefined as any },
+      )
     }
   })
 
@@ -90,9 +96,15 @@ describe('toolDefinition', () => {
     expect(clientTool.execute).toBeDefined()
 
     if (clientTool.execute) {
-      const result = await clientTool.execute({ key: 'test', value: 'data' })
+      const result = await clientTool.execute(
+        { key: 'test', value: 'data' },
+        { context: undefined as any },
+      )
       expect(result).toEqual({ success: true })
-      expect(executeFn).toHaveBeenCalledWith({ key: 'test', value: 'data' })
+      expect(executeFn).toHaveBeenCalledWith(
+        { key: 'test', value: 'data' },
+        { context: undefined as any },
+      )
     }
   })
 
@@ -176,7 +188,10 @@ describe('toolDefinition', () => {
     })
 
     if (serverTool.execute) {
-      const result = serverTool.execute({ value: 5 })
+      const result = serverTool.execute(
+        { value: 5 },
+        { context: undefined as any },
+      )
       expect(result).toEqual({ doubled: 10 })
     }
   })
@@ -218,11 +233,14 @@ describe('toolDefinition', () => {
     })
 
     // Verify it can be called
-    void serverTool.execute?.({
-      orderId: '123',
-      items: [],
-      shipping: { address: '123 Main St', method: 'standard' },
-    })
+    void serverTool.execute?.(
+      {
+        orderId: '123',
+        items: [],
+        shipping: { address: '123 Main St', method: 'standard' },
+      },
+      { context: undefined as any },
+    )
 
     expect(serverTool.__toolSide).toBe('server')
   })
@@ -291,22 +309,29 @@ describe('toolDefinition', () => {
         },
       }
 
-      const executeFn = vi.fn(async (args: any, context?: TestContext) => {
-        if (!context) throw new Error('Context required')
-        const user = await context.db.users.find(args.userId)
-        return user
-      })
+      const executeFn = vi.fn(
+        async (args: any, options: { context: TestContext }) => {
+          const user = await options.context.db.users.find(args.userId)
+          return user
+        },
+      )
 
       const serverTool = tool.server<TestContext>(executeFn)
 
       if (serverTool.execute) {
-        const result = await serverTool.execute({ userId: '123' }, mockContext)
+        const result = await serverTool.execute(
+          { userId: '123' },
+          { context: mockContext },
+        )
 
         expect(result).toEqual({
           name: 'John Doe',
           email: 'john@example.com',
         })
-        expect(executeFn).toHaveBeenCalledWith({ userId: '123' }, mockContext)
+        expect(executeFn).toHaveBeenCalledWith(
+          { userId: '123' },
+          { context: mockContext },
+        )
         expect(mockContext.db.users.find).toHaveBeenCalledWith('123')
       }
     })
